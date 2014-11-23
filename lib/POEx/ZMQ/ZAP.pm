@@ -3,9 +3,8 @@ package POEx::ZMQ::ZAP;
 
 use Moo; use MooX::late;
 with
-  'POEx::ZMQ::ZAP::Role::Whitelist',
-  'POEx::ZMQ::ZAP::Role::Blacklist',
-
+  'POEx::ZMQ::ZAP::Role::Whitelisting',
+  'POEx::ZMQ::ZAP::Role::Blacklisting',
   'POEx::ZMQ::ZAP::Role::PlainHandler',
   'POEx::ZMQ::ZAP::Role::ZCertHandler',
 ;
