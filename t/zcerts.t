@@ -26,11 +26,11 @@ for (qw/D E F/) {
 
 
 
-{ # setup($domain => $dir)
+{ # setup_certificate($domain => $dir)
   my $handler = ZCertHandler->new;
   isa_ok $handler->zcerts, 'POEx::ZMQ::ZAP::ZCerts';
 
-  $handler->zcerts->setup(foo => 't/inc/keydir');
+  $handler->zcerts->setup_certificate(foo => 't/inc/keydir');
 
   # check($domain => $pubkey) [for keys added from dir]
   my $should_fail = $maindir_keys{A};
@@ -45,7 +45,7 @@ for (qw/D E F/) {
   }
 
   # add another file & recheck
-  $handler->zcerts->setup(foo => 't/inc/my_keyB.key');
+  $handler->zcerts->setup_certificate(foo => 't/inc/my_keyB.key');
   ok $handler->zcerts->check(foo => $maindir_keys{B}),
     'adding another pubkey from file ok';
   ok $handler->zcerts->check(foo => $subdir_keys{D}),
@@ -55,7 +55,8 @@ for (qw/D E F/) {
 
 # FIXME
 #   shove some pubkeys in a dir
-# test setup(-all => $cert);
+# test setup_certificate(-all => $cert);
+# test setup_key($domain => $pubkey)
 #
 # test check(-all => $pubkey);
 # test check($domain => $pubkey);

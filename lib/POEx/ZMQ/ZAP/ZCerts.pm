@@ -27,11 +27,16 @@ sub _install_pubkey_from_cert {
   my ($self, $domain, $pubcert) = @_;
   my $zcert = Crypt::ZCert->new(public_file => $pubcert);
   my $pubkey = $zcert->public_key_z85;
+  $self->_install_pubkey($domain => $pubkey)
+}
+
+sub _install_pubkey {
+  my ($self, $domain, $pubkey) = @_;
   push @{ $self->_pubkeys->{ $pubkey } }, $domain;
   $self
 }
 
-sub setup {
+sub setup_certificate {
   my ($self, $domain, $path) = @_;
   confess "Expected a domain and path to certificate or certificate directory"
     unless defined $domain and defined $path;
@@ -49,6 +54,13 @@ sub setup {
   }
   
   $self
+}
+
+sub setup_key {
+  my ($self, $domain, $pubkey) = @_;
+  confess "Expected a domain and a Z85-encoded public key"
+    unless defined $domain and $pubkey;
+  $self->_install_pubkey($domain => $pubkey)  
 }
 
 sub check {
