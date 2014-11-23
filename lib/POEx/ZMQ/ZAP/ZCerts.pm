@@ -73,7 +73,7 @@ sub check {
   $self->_pubkeys->get($pubkey)->has_any(sub { $_ eq $domain })
 }
 
-sub invalidate_all {
+sub invalidate_all_keys {
   my ($self) = @_;
   $self->_pubkeys->clear;
   $self
@@ -82,6 +82,20 @@ sub invalidate_all {
 sub invalidate_key {
   my ($self, $pubkey) = @_;
   $self->_pubkeys->delete($pubkey);
+  $self
+}
+
+sub invalidate_domain_key {
+  my ($self, $domain, $pubkey) = @_;
+
+  my $listed = $self->_pubkeys->get($pubkey) || return;
+  my $new_domains = $listed->grep(sub { $_ ne $domain });
+  if ($new_domains->has_any) {
+    $self->_pubkeys->set($pubkey => $new_domains)
+  } else {
+    $self->_pubkeys->delete($pubkey)
+  }
+
   $self
 }
 
@@ -102,17 +116,19 @@ sub invalidate_domain {
   $self
 }
 
-sub invalidate_keys_for_domain {
-  my ($self, $domain) = @_;
-
-  my $itr = $self->_pubkeys->iter;
-  while (my ($pubkey, $listed) = $itr->()) {
-    $self->_pubkeys->delete($pubkey) 
-      if $listed->has_any(sub { $_ eq $domain })
-  }
-
-  $self
-}
+# Hrm. So I implemented this and then couldn't think of much utility.
+# Here it is in case I do:
+#sub invalidate_keys_for_domain {
+#  my ($self, $domain) = @_;
+#
+#  my $itr = $self->_pubkeys->iter;
+#  while (my ($pubkey, $listed) = $itr->()) {
+#    $self->_pubkeys->delete($pubkey) 
+#      if $listed->has_any(sub { $_ eq $domain })
+#  }
+#
+#  $self
+#}
 
 
 1;
