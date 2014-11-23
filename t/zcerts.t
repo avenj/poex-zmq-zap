@@ -28,6 +28,7 @@ for (qw/D E F/) {
   my $handler = CurveHandler->new;
   isa_ok $handler->curve, 'POEx::ZMQ::ZAP::CurveAuth';
 
+  # handler: curve_setup_certificate
   $handler->curve_setup_certificate(foo => 't/inc/keydir');
 
   # check($domain => $pubkey) [for keys added from dir]
@@ -69,7 +70,9 @@ for (qw/D E F/) {
 { # setup_key($domain => $pubkey)
   my $handler = CurveHandler->new;
   my $pubkey = Crypt::ZCert->generate_keypair->public;
+  # handler: curve_setup_key
   $handler->curve_setup_key(foo => $pubkey);
+  # handler: curve_check
   ok $handler->curve_check(foo => $pubkey),
     'pubkey added via setup_key checks ok';
 }
