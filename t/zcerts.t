@@ -26,7 +26,7 @@ for (qw/D E F/) {
 
 { # setup_certificate($domain => $dir)
   my $handler = CurveHandler->new;
-  isa_ok $handler->curve, 'POEx::ZMQ::ZAP::ZCerts';
+  isa_ok $handler->curve, 'POEx::ZMQ::ZAP::CurveAuth';
 
   $handler->curve_setup_certificate(foo => 't/inc/keydir');
 

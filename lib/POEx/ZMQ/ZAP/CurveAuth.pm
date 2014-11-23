@@ -1,4 +1,4 @@
-package POEx::ZMQ::ZAP::ZCerts;
+package POEx::ZMQ::ZAP::CurveAuth;
 
 use strictures 1;
 use Carp;
