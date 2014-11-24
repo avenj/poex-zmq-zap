@@ -3,6 +3,8 @@ package POEx::ZMQ::ZAP::CurveAuth;
 use strictures 1;
 use Carp;
 
+use Scalar::Util 'reftype';
+
 use Crypt::ZCert;
 use Path::Tiny;
 
@@ -32,7 +34,10 @@ sub _install_pubkey_from_cert {
 
 sub _install_pubkey {
   my ($self, $domain, $pubkey) = @_;
-  push @{ $self->_pubkeys->{ $pubkey } }, $domain;
+  # FIXME tests for multi-domain setup_* ->
+  my @domains
+    = ref $domain && reftype $domain eq 'ARRAY' ? @$domain : $domain;
+  push @{ $self->_pubkeys->{ $pubkey } }, @domains;
   $self
 }
 

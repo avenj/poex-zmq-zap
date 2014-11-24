@@ -79,13 +79,17 @@ for (qw/D E F/) {
 
 { # invalidate_all_keys
   my $handler = CurveHandler->new;
-  $handler->curve->setup_certificate(foo => 't/inc/keydir');
+  # multi-domain ARRAY in setup_certificate
+  $handler->curve->setup_certificate([qw/foo bar/], 't/inc/keydir');
   fail "setup phase for invalidate checks failed, key F invalid"
-    unless $handler->curve->check(foo => $subdir_keys{F});
+    unless $handler->curve->check(foo => $subdir_keys{F})
+      and  $handler->curve->check(bar => $subdir_keys{F});
 
   $handler->curve->invalidate_all_keys;
   ok !$handler->curve->check(foo => $subdir_keys{F}),
-    'checking pubkey after invalidate_all_keys fails ok';
+    'checking pubkey for domain foo after invalidate_all_keys fails ok';
+  ok !$handler->curve->check(bar => $subdir_keys{F}),
+    'checking pubkey for domain bar after invalidate_all_keys fails ok';
 }
 
 { # invalidate_key
