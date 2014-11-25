@@ -60,6 +60,11 @@ for (qw/D E F/) {
   ok $handler->curve->check(bar => $maindir_keys{C}),
     'checking pubkey for second domain ok';
 
+  # set up a cert for -all domains
+  $handler->curve->setup_certificate(-all => 't/inc/my_keyC.key');
+  ok $handler->curve->check(foo => $maindir_keys{C}),
+    'checking pubkey applied to -all for specific domain ok';
+
   # check against -all domains
   ok $handler->curve->check(-all => $subdir_keys{D}),
     'checking pubkey against -all domains ok';

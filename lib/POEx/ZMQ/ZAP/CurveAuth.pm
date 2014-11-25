@@ -73,9 +73,12 @@ sub check {
   confess "Expected a domain and a public key (as Z85 text)"
     unless defined $domain and defined $pubkey;
 
-  return unless $self->_pubkeys->exists($pubkey);
-  return 1 if $domain eq '-all';
-  $self->_pubkeys->get($pubkey)->has_any(sub { $_ eq $domain })
+  my $listed = $self->_pubkeys->get($pubkey);
+  return unless $listed;
+  return 1
+    if $domain eq '-all'
+    or $listed->has_any(sub { $_ eq '-all' || $_ eq $domain });
+  return
 }
 
 sub invalidate_all_keys {
