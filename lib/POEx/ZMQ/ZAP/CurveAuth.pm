@@ -34,7 +34,6 @@ sub _install_pubkey_from_cert {
 
 sub _install_pubkey {
   my ($self, $domain, $pubkey) = @_;
-  # FIXME tests for multi-domain setup_* ->
   my @domains
     = ref $domain && reftype $domain eq 'ARRAY' ? @$domain : $domain;
   push @{ $self->_pubkeys->{ $pubkey } }, @domains;
@@ -76,9 +75,11 @@ sub check {
   my $listed = $self->_pubkeys->get($pubkey);
   return unless $listed;
   return 1
+    # OK if pubkey matches and we're checking against -all domains:
     if $domain eq '-all'
+    # OK if matching pubkey was set up for -all domains:
     or $listed->has_any(sub { $_ eq '-all' || $_ eq $domain });
-  return
+  ()
 }
 
 sub invalidate_all_keys {
@@ -138,5 +139,91 @@ sub invalidate_domain {
 #  $self
 #}
 
-
 1;
+
+=pod
+
+=head1 NAME
+
+POEx::ZMQ::ZAP::CurveAuth - CURVE key management for ZeroMQ ZAP
+
+=head1 SYNOPSIS
+
+FIXME
+
+=head1 DESCRIPTION
+
+This module handles loading, managing, and validating CURVE public keys for
+use with L<POEx::ZMQ::ZAP>.
+
+The public keys may be loaded from C<ZCert>-formatted certificate files; see
+L<Crypt::ZCert> for details and a certificate creation interface.
+
+=head2 METHODS
+
+=head1 setup_certificate
+
+  # Add a single ZCert certificate:
+  $curve->setup_certificate(mydomain => 'keys/mydomain.key');
+
+  # Add all certificates (ending in .key) found in $dir:
+  $curve->setup_certificate(mydomain => 'keys/');
+
+  # Add a certificate to multiple domains in one shot:
+  $curve->setup_certificate([qw/foo bar/], 'keys/myfoobar.key')
+
+  # Add a certificate that applies to all domains:
+  $curve->setup_certificate(-all => $path);
+
+Takes a domain or an ARRAY of domains and a path to a single
+C<ZCert>-formatted certificate or a directory containing multiple
+certificates; the relevant certificates and processed and their public keys
+registered for the given domain[s].
+
+See L<Crypt::ZCert> for details regarding certificates.
+
+=head1 setup_key
+
+  $curve->setup_key($domain => $z85_pubkey);
+
+Like L</setup_certificate>, but the Z85-encoded public key is passed directly.
+
+=head1 check
+
+  $curve->check($domain => $pubkey);
+
+Verifies the given C<$pubkey> is valid for C<$domain> (or a matching key has
+been loaded for the C<-all> domain; see L</setup_certificate>).
+
+If the given C<$domain> is C<-all>, a matching key loaded for any domain is
+considered valid.
+
+=head1 invalidate_key
+
+  $curve->invalidate_key($pubkey);
+
+Invalidates the given C<$pubkey> (for all domains).
+
+=head1 invalidate_all_keys
+
+  $curve->invalidate_all_keys;
+
+Invalidates all loaded keys.
+
+=head1 invalidate_domain_key
+
+  $curve->invalidate_domain_key($domain => $pubkey);
+
+Invalidate the public key only for the given domain.
+
+=head1 invalidate_domain
+
+  $curve->invalidate_domain($domain);
+
+Invalidates the given domain for all relevant loaded public keys.
+
+=head1 AUTHOR
+
+Jon Portnoy <avenj@cobaltirc.org>
+
+=cut
