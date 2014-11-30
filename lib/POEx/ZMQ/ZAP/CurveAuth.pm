@@ -90,12 +90,15 @@ sub invalidate_all_keys {
 
 sub invalidate_key {
   my ($self, $pubkey) = @_;
+  confess "Expected a pubkey" unless defined $pubkey;
   $self->_pubkeys->delete($pubkey);
   $self
 }
 
 sub invalidate_domain_key {
   my ($self, $domain, $pubkey) = @_;
+  confess "Expected a domain and pubkey"
+    unless defined $domain and defined $pubkey;
 
   my $listed = $self->_pubkeys->get($pubkey) || return;
   my $new_domains = $listed->grep(sub { $_ ne $domain });
@@ -110,6 +113,7 @@ sub invalidate_domain_key {
 
 sub invalidate_domain {
   my ($self, $domain) = @_;
+  confess "Expected a domain" unless defined $domain;
 
   my $itr = $self->_pubkeys->iter;
   while (my ($pubkey, $listed) = $itr->()) {
@@ -153,8 +157,8 @@ FIXME
 
 =head1 DESCRIPTION
 
-This module handles loading, managing, and validating CURVE public keys for
-use with L<POEx::ZMQ::ZAP>.
+This module handles loading and validating CURVE public keys for
+use with L<POEx::ZMQ::ZAP> via L<POEx::ZMQ::ZAP::Role::CurveHandler>.
 
 The public keys may be loaded from C<ZCert>-formatted certificate files; see
 L<Crypt::ZCert> for details and a certificate creation interface.

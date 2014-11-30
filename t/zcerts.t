@@ -29,7 +29,9 @@ for (qw/D E F/) {
   isa_ok $handler->curve, 'POEx::ZMQ::ZAP::CurveAuth';
 
   # handler: curve_setup_certificate
-  $handler->curve_setup_certificate(foo => 't/inc/keydir');
+  ok $handler->curve_setup_certificate(foo => 't/inc/keydir')
+    == $handler->curve,
+    'curve_setup_certificate returned self ok';
 
   # check($domain => $pubkey) [for keys added from dir]
   my $should_fail = $maindir_keys{A};
@@ -70,16 +72,25 @@ for (qw/D E F/) {
     'checking pubkey against -all domains ok';
   ok !$handler->curve->check(-all => $should_fail),
     'checking bad pubkey against -all domains fails ok';
+
+  eval {; $handler->curve_setup_certificate('foo') };
+  ok $@, 'curve_setup_certificate bad args dies';
+  eval {; $handler->curve->check('foo') };
+  ok $@, 'check bad args dies';
 }
 
 { # setup_key($domain => $pubkey)
   my $handler = CurveHandler->new;
   my $pubkey = Crypt::ZCert->generate_keypair->public;
   # handler: curve_setup_key
-  $handler->curve_setup_key(foo => $pubkey);
+  ok $handler->curve_setup_key(foo => $pubkey) == $handler->curve,
+    'curve_setup_key returned self ok';
   # handler: curve_check
   ok $handler->curve_check(foo => $pubkey),
     'pubkey added via setup_key checks ok';
+
+  eval {; $handler->curve_setup_key('foo') };
+  ok $@, 'curve_setup_key bad args dies';
 }
 
 { # invalidate_all_keys
@@ -90,7 +101,8 @@ for (qw/D E F/) {
     unless $handler->curve->check(foo => $subdir_keys{F})
       and  $handler->curve->check(bar => $subdir_keys{F});
 
-  $handler->curve->invalidate_all_keys;
+  ok $handler->curve->invalidate_all_keys == $handler->curve,
+    'invalidate_all_keys returned self ok';
   ok !$handler->curve->check(foo => $subdir_keys{F}),
     'checking pubkey for domain foo after invalidate_all_keys fails ok';
   ok !$handler->curve->check(bar => $subdir_keys{F}),
@@ -105,7 +117,8 @@ for (qw/D E F/) {
     unless $handler->curve->check(foo => $subdir_keys{F})
       and  $handler->curve->check(bar => $subdir_keys{F});
 
-  $handler->curve->invalidate_key($subdir_keys{F});
+  ok $handler->curve->invalidate_key($subdir_keys{F}) == $handler->curve,
+    'invalidate_key returned self ok';
   ok !$handler->curve->check(foo => $subdir_keys{F}),
     'checking pubkey for domain foo after invalidate_key fails ok';
   ok !$handler->curve->check(bar => $subdir_keys{F}),
@@ -115,6 +128,9 @@ for (qw/D E F/) {
     'other pubkeys for domain foo check ok after invalidate_key';
   ok $handler->curve->check(bar => $subdir_keys{D}),
     'other pubkeys for domain bar check ok after invalidate_key';
+
+  eval {; $handler->curve->invalidate_key };
+  ok $@, 'invalidate_key bad args dies';
 }
 
 { # invalidate_domain
@@ -125,11 +141,15 @@ for (qw/D E F/) {
     unless $handler->curve->check(foo => $subdir_keys{F})
       and  $handler->curve->check(bar => $subdir_keys{F});
 
-  $handler->curve->invalidate_domain('foo');
+  ok $handler->curve->invalidate_domain('foo') == $handler->curve,
+    'invalidate_domain returned self ok';
   ok !$handler->curve->check(foo => $subdir_keys{F}),
     'checking pubkey for domain foo after invalidate_domain fails ok';
   ok $handler->curve->check(bar => $subdir_keys{F}),
     'checking pubkey for domain bar after invalidate_domain ok';
+
+  eval {; $handler->curve->invalidate_domain };
+  ok $@, 'invalidate_domain bad args dies';
 }
 
 { # invalidate_domain_key
@@ -140,11 +160,16 @@ for (qw/D E F/) {
     unless $handler->curve->check(foo => $subdir_keys{F})
       and  $handler->curve->check(bar => $subdir_keys{F});
 
-  $handler->curve->invalidate_domain_key(foo => $subdir_keys{F});
+  ok $handler->curve->invalidate_domain_key(foo => $subdir_keys{F})
+    == $handler->curve,
+    'invalidate_domain_key returned self ok';
   ok !$handler->curve->check(foo => $subdir_keys{F}),
     'checking pubkey for domain foo after invalidate_domain_key fails ok';
   ok $handler->curve->check(bar => $subdir_keys{F}),
     'checking pubkey for domain bar after invalidate_domain_key ok';
+
+  eval {; $handler->curve->invalidate_domain_key('foo') };
+  ok $@, 'invalidate_domain_key bad args dies';
 }
 
 done_testing
