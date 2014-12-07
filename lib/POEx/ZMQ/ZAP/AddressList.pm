@@ -51,16 +51,13 @@ sub del_mask {
   my ($self, $mask) = @_;
 
   $self->masks->delete_when(sub {
-    if (ref eq 'Regexp') {
-      return unless ref $mask eq 'Regexp';
-      return 1 if $mask == $_;
+    if (ref) {
+      return unless ref $mask
     } else {
-      return if ref $mask;
-      return 1 if $mask eq $_;
+      return if ref $mask
     }
+    $mask eq $_
   });
 }
-
-sub list_masks { shift->masks->all }
 
 1;
