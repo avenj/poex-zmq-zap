@@ -5,6 +5,8 @@ use Carp;
 
 use Scalar::Util 'reftype';
 
+use List::Objects::WithUtils;
+
 use Types::Standard       -types;
 use List::Objects::Types  -types;
 
@@ -37,21 +39,35 @@ sub setup_user {
   $self
 }
 
-sub check_login {
+sub check {
   my ($self, $domain, $user, $passwd) = @_;
   confess "Expected a domain, username, and passwd"
     unless defined $domain and defined $user and defined $passwd;
 
   my $uobj = $self->_users->get($user);
-  confess "No such user '$user' available" unless $uobj;
+  return unless $uobj;  
   
-  $uobj->pass eq $passwd and $uobj->domains->has_any(sub { $_ eq $domain })
+  return 1
+    if $self->compare_passwd($passwd, $uobj->pass)
+    and (
+      $domain eq '-all'
+      or $uobj->domains->has_any(sub { $_ eq '-all' || $_ eq $domain })
+    );
+  ()
 }
 
-sub add_user_domain {
-  my ($self, $user, $domain) = @_;
-  confess "Expected a username and domain"
-    unless defined $user and defined $domain;
+sub compare_passwd {
+  # Overridable
+  my ($self, $given, $expected) = @_;
+  confess "Expected a given & expected password string"
+    unless defined $given and defined $expected;
+  $given eq $expected
+}
+
+sub add_domain_to_user {
+  my ($self, $domain, $user) = @_;
+  confess "Expected a domain and username"
+    unless defined $domain and defined $user;
 
   my $uobj = $self->_users->get($user);
   confess "No such user '$user' available" unless $uobj;
@@ -76,10 +92,10 @@ sub set_passwd {
   $self
 }
 
-sub invalidate_user_domain {
-  my ($self, $user, $domain) = @_;
-  confess "Expected a username and domain"
-    unless defined $user and defined $domain;
+sub invalidate_domain_user {
+  my ($self, $domain, $user) = @_;
+  confess "Expected a domain and username"
+    unless defined $domain and defined $user;
 
   my $uobj = $self->_users->get($user);
   confess "No such user '$user' available" unless $uobj;
@@ -113,9 +129,16 @@ sub invalidate_domain {
 
 sub invalidate_user {
   my ($self, $user) = @_;
+  confess "Expected a username" unless defined $user;
   unless ( $self->_users->delete($user)->has_any ) {
     carp "Cannot invalidate_user for nonexistant user '$user'"
   }
+  $self
+}
+
+sub invalidate_all_users {
+  my ($self) = @_;
+  $self->_users->clear;
   $self
 }
 
