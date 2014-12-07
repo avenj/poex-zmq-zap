@@ -8,17 +8,14 @@ use POEx::ZMQ;
 use Types::Standard   -types;
 use POEx::ZMQ::Types  -types;
 
-use constant ZAP_VERSION => '1.0';
+use POEx::ZMQ::ZAP::Internal::Request;
+use POEx::ZMQ::ZAP::Internal::Reply;
+
 
 use Moo; use MooX::late;
-with
-  'MooX::Role::POE::Emitter',
+with 'MooX::Role::POE::Emitter';
 
-  'POEx::ZMQ::ZAP::Role::Whitelisting',
-  'POEx::ZMQ::ZAP::Role::Blacklisting',
-  'POEx::ZMQ::ZAP::Role::PlainHandler',
-  'POEx::ZMQ::ZAP::Role::ZCertHandler',
-;
+use constant ZAP_VERSION => '1.0';
 
 has context => (
   required  => 1,
@@ -50,8 +47,25 @@ has logger => (
 );
 
 
+with
+  'POEx::ZMQ::ZAP::Role::AddressHandler',
+  'POEx::ZMQ::ZAP::Role::PlainHandler',
+  'POEx::ZMQ::ZAP::Role::ZCertHandler',
+;
+
+
 sub BUILD {
-  # FIXME emitter object_states cfg
+  my ($self) = @_;
+  $self->set_object_states(
+    [
+      $self => +{
+        emitter_started => '_emitter_started',
+        emitter_stopped => '_emitter_stopped',
+        zmq_recv_multipart => 'zmq_recv_multipart',
+      },
+    ]
+  );
+  $self->set_alias('ZAP') unless $self->has_alias;
   $self->set_event_prefix('zap_') unless $self->has_event_prefix;
   $self->_start_emitter
 }
@@ -63,10 +77,14 @@ sub stop {
 }
 
 
-sub _start {
+sub _emitter_started {
   my ($kernel, $self) = @_[KERNEL, OBJECT];
 
   $self->_zsock->bind('inproc://zeromq.zap.01');
+}
+
+sub _emitter_stopped {
+
 }
 
 sub zmq_recv_multipart {
@@ -74,17 +92,7 @@ sub zmq_recv_multipart {
   my $envelope = $parts->items_before(sub { ! length });
   my $body     = $parts->items_after(sub { ! length });
 
-  if ($body->count < 6) {
-    $self->logger->(info => "Not enough frames in ZAP request");
-    if ( $body->exists(1) ) {
-      $self->_send_error_reply(
-        $envelope, $body->get(1), 400 => 'Not enough frames'
-      )
-    } else {
-      $self->logger->(info => "Cannot reply to malformed ZAP request")
-    }
-    return
-  }
+  return unless $self->_verify_zap_args($body); 
 
   my (
     $version,         # version frame (three bytes; '1.0' expected)
@@ -105,43 +113,90 @@ sub zmq_recv_multipart {
     return
   }
 
-  # FIXME check address against explicit whitelist / blacklist
+  my $zrequest = POEx::ZMQ::ZAP::Internal::Request->new(
+    envelope    => $envelope,
+    request_id  => $req_id,
+    domain      => $domain,
+    address     => $address,
+    identity    => $identity,
+    mechanism   => $mechanism,
+    credentials => array(@credentials),
+  );
+
+  $self->_dispatch_zap_auth($zrequest)
+}
+
+sub _verify_zap_args {
+  my ($self, $body) = @_;
+
+  if ($body->count < 6) {
+    $self->logger->(info => "Not enough frames in ZAP request");
+    if ( $body->exists(1) ) {
+      $self->_send_error_reply(
+        $envelope, $body->get(1), 400 => 'Not enough frames'
+      )
+    } else {
+      $self->logger->(info => "Cannot reply to malformed ZAP request")
+    }
+    return
+  }
+
+  1
+}
+
+sub _dispatch_zap_auth {
+  my ($self, $zrequest) = @_;
+
+  my $result;
+  # FIXME check ->address against explicit whitelist / blacklist
   
   AUTH: {
     if ($mechanism eq 'NULL') {
-      # FIXME allowed
+      $result = hash(
+        domain  => $zrequest->domain,
+        allowed => 1,
+        reason  => '',
+      )->inflate;
+      last AUTH
     }
 
     if ($mechanism eq 'PLAIN') {
-      # FIXME get result obj from PlainHandler
+      my ($user, $passwd) = $zrequest->credentials->all;
+      # FIXME check for missing user/passwd
+      $result = $self->plain_authenticate(
+        $zrequest->domain => $user => $passwd
+      );
+      last AUTH
     }
 
     if ($mechanism eq 'CURVE') {
-      # FIXME get result obj from CurveHandler
+      # FIXME get pubkey from creds and ->curve_authenticate
+      last AUTH
     }
 
     # FIXME unknown mechanism
   } # AUTH
 
   # FIXME send appropriate 200/400
+  if ($result->allowed) {
+
+  } else {
+
+  }
 }
 
 sub _send_error_reply {
   my ($self, $envelope, $req_id, $code, $txt) = @_;
 
-  my $zmsg = $self->_assemble_reply_msg(
+  my @reply = $self->_assemble_reply_msg(
     request_id  => $req_id, 
     status_code => $code, 
     status_text => $txt,
   );
 
   $self->_zsock->send_multipart(
-    [ $envelope, '', $zmsg ]
+    [ $envelope, '', @reply ]
   );
-}
-
-sub _send_auth_reply {
-  # FIXME
 }
 
 sub _assemble_reply_msg {
@@ -165,17 +220,10 @@ sub _assemble_reply_msg {
   )
 }
 
-#  
-# low-pri
+#  TODO
 #  - proxy mode; handler may connect or bind tcp:// endpoint
 #    for connecting/accepting external handlers ?
 #    https://github.com/zeromq/rfc/blob/master/src/spec_27.c#L100
-#
-# notes
-#  see pyzmq wrt whitelisting, blacklisting
-#  Crypt::ZCert for cert dirs
-#  investigate CURVE auth details (zmq rfc)
-#  whitelist files?
 
 1;
 
