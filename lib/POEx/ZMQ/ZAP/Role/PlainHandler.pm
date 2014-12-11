@@ -3,9 +3,16 @@ package POEx::ZMQ::ZAP::Role::PlainHandler;
 use strictures 1;
 use Carp;
 
+use List::Objects::WithUtils;
+
+use Types::Standard   -types;
+
+use POEx::ZMQ::ZAP::PlainAuth;
+use POEx::ZMQ::ZAP::Internal::Result;
 
 
 use Moo::Role; use MooX::late;
+
 
 has plain => (
   lazy      => 1,
@@ -13,12 +20,34 @@ has plain => (
   isa       => InstanceOf['POEx::ZMQ::ZAP::PlainAuth'],
   builder   => sub { POEx::ZMQ::ZAP::PlainAuth->new },
   handles   => +{
-    # FIXME
+    plain_setup_user => 'setup_user',
+    plain_check      => 'check',
   },
 );
 
 sub plain_authenticate {
-  # FIXME
+  my ($self, $domain, $username, $pwd) = @_;
+  $domain //= '';
+
+  my ($reason, $allowed) = '';
+
+  # FIXME logging
+
+  if (!defined $username || !defined $pwd) {
+    $reason = "Invalid credentials"
+  } elsif ( !$self->plain_check($domain, $username, $pwd) ) {
+    $reason = "Authentication failed"
+  } else {
+    $allowed = 1
+  }
+
+
+  POEx::ZMQ::ZAP::Internal::Result->new(
+    domain   => $domain,
+    username => $username,
+    allowed  => $allowed,
+    reason   => $reason,
+  )
 }
 
 1;
