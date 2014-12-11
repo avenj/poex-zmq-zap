@@ -74,12 +74,7 @@ sub check {
 
   my $listed = $self->_pubkeys->get($pubkey);
   return unless $listed;
-  return 1
-    # OK if pubkey matches and we're checking against -all domains:
-    if $domain eq '-all'
-    # OK if matching pubkey was set up for -all domains:
-    or $listed->has_any(sub { $_ eq '-all' || $_ eq $domain });
-  ()
+  $listed->has_any(sub { $_ eq '-all' || $_ eq $domain })
 }
 
 sub invalidate_all_keys {
@@ -198,9 +193,6 @@ Like L</setup_certificate>, but the Z85-encoded public key is passed directly.
 
 Verifies the given C<$pubkey> is valid for C<$domain> (or a matching key has
 been loaded for the C<-all> domain; see L</setup_certificate>).
-
-If the given C<$domain> is C<-all>, a matching key loaded for any domain is
-considered valid.
 
 =head1 invalidate_key
 

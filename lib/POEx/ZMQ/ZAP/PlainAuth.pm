@@ -47,13 +47,8 @@ sub check {
   my $uobj = $self->_users->get($user);
   return unless $uobj;  
   
-  return 1
-    if $self->compare_passwd($passwd, $uobj->pass)
-    and (
-      $domain eq '-all'
-      or $uobj->domains->has_any(sub { $_ eq '-all' || $_ eq $domain })
-    );
-  ()
+  $self->compare_passwd($passwd, $uobj->pass)
+    and $uobj->domains->has_any(sub { $_ eq '-all' || $_ eq $domain })
 }
 
 sub compare_passwd {

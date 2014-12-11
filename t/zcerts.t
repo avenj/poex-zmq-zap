@@ -2,7 +2,17 @@ use Test::More;
 use strict; use warnings FATAL => 'all';
 
 { package CurveHandler;
-  use Moo; with 'POEx::ZMQ::ZAP::Role::CurveHandler';
+  use Moo;
+  has logger => (
+    is => 'ro',
+    builder => sub {
+      sub {
+        my $level = shift;
+        # FIXME record logged msgs, test
+      }
+    },
+  );
+  with 'POEx::ZMQ::ZAP::Role::CurveHandler';
 }
 
 use Crypt::ZCert;
@@ -66,12 +76,6 @@ for (qw/D E F/) {
   $handler->curve->setup_certificate(-all => 't/inc/my_keyC.key');
   ok $handler->curve->check(foo => $maindir_keys{C}),
     'checking pubkey applied to -all for specific domain ok';
-
-  # check against -all domains
-  ok $handler->curve->check(-all => $subdir_keys{D}),
-    'checking pubkey against -all domains ok';
-  ok !$handler->curve->check(-all => $should_fail),
-    'checking bad pubkey against -all domains fails ok';
 
   eval {; $handler->curve_setup_certificate('foo') };
   ok $@, 'curve_setup_certificate bad args dies';
