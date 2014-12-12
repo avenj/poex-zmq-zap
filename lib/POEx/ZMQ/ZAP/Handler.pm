@@ -146,14 +146,30 @@ sub _verify_zap_args {
 
 sub _dispatch_zap_auth {
   my ($self, $zrequest) = @_;
-
-  my $result;
-  
   my $mechanism = $zrequest->mechanism;
+  my $result;
 
   AUTH: {
-    # FIXME check ->address against explicit whitelist / blacklist
-
+    if ($self->address_auth_via eq 'whitelist') {
+      unless ( $self->addr_is_whitelisted($zrequest->address) ) {
+        $result = POEx::ZMQ::ZAP::Internal::Result->new(
+          allowed => 0,
+          reason  => 'Address not in whitelist',
+          domain  => $zrequest->domain,
+        );
+        last AUTH
+      }
+    } elsif ($self->address_auth_via eq 'blacklist') {
+      if ( $self->addr_is_blacklisted($zrequest->address) ) {
+        $result = POEx::ZMQ::ZAP::Internal::Result->new(
+          allowed => 0,
+          reason  => 'Address is blacklisted',
+          domain  => $zrequest->domain,
+        );
+        last AUTH
+      }
+    }
+   
     if ($mechanism eq 'NULL') {
       $result = POEx::ZMQ::ZAP::Internal::Result->new(
         allowed => 1,
