@@ -15,12 +15,12 @@ use Moo::Role; use MooX::late;
 has address_auth_via => (
   lazy      => 1,
   is        => 'ro',
-  isa       => Maybe[ Enum[qw/whitelist blacklist/] ],
-  builder   => sub { undef },
+  isa       => Enum[qw/whitelist blacklist/],
+  builder   => sub { 'blacklist' },
 );
 
 
-has _addrlist => (
+has accesslist => (
   lazy      => 1,
   is        => 'ro',
   isa       => InstanceOf['POEx::ZMQ::ZAP::AddressList'],
@@ -28,16 +28,31 @@ has _addrlist => (
 );
 
 
+sub deny_mask {
+  my $self = shift;
+  confess "deny_mask cannot be used when address_auth_via => 'whitelist'"
+    if $self->address_auth_via eq 'whitelist';
+  $self->accesslist->add_mask(@_)
+}
+
+sub allow_mask {
+  my $self = shift;
+  confess "allow_mask cannot be used when address_auth_via => 'blacklist'"
+    if $self->address_auth_via eq 'blacklist';
+  $self->accesslist->add_mask(@_)
+}
+
+
 sub addr_is_whitelisted {
   my ($self, $addr) = @_;
   return unless $self->address_auth_via eq 'whitelist';
-  $self->_addrlist->has_match($addr)
+  $self->accesslist->has_match($addr)
 }
 
 sub addr_is_blacklisted {
   my ($self, $addr) = @_;
   return unless $self->address_auth_via eq 'blacklist';
-  $self->_addrlist->has_match($addr)
+  $self->accesslist->has_match($addr)
 }
 
 1;
