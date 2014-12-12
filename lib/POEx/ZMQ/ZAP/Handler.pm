@@ -9,7 +9,7 @@ use Types::Standard   -types;
 use POEx::ZMQ::Types  -types;
 
 use POEx::ZMQ::ZAP::Internal::Request;
-use POEx::ZMQ::ZAP::Internal::Reply;
+use POEx::ZMQ::ZAP::Internal::Result;
 
 
 use Moo; use MooX::late;
@@ -29,6 +29,7 @@ has _zsock => (
   isa       => ZMQSocket[ZMQ_ROUTER],
   clearer   => '_clear_zsock',
   builder   => sub {
+    my ($self) = @_;
     POEx::ZMQ->socket(
       context => $self->context,
       type    => ZMQ_ROUTER,
@@ -71,6 +72,7 @@ sub BUILD {
 }
 
 sub stop {
+  my ($self) = @_;
   $self->_zsock->stop;
   $self->_clear_zsock;
   $self->_shutdown_emitter
@@ -92,26 +94,12 @@ sub zmq_recv_multipart {
   my $envelope = $parts->items_before(sub { ! length });
   my $body     = $parts->items_after(sub { ! length });
 
-  return unless $self->_verify_zap_args($body); 
+  my $zap_args = $self->_verify_zap_args($envelope, $body);
+  return unless $zap_args;
 
   my (
-    $version,         # version frame (three bytes; '1.0' expected)
-    $req_id,          # binary blob [optional]
-    $domain,          # string
-    $address,
-    $identity,
-    $mechanism,       # string; NULL, PLAIN, CURVE
-    @credentials      # zero or more binary blobs
-  ) = $body->all;
-
-  $domain = '-all' unless defined $domain and length $domain;
-
-  unless ($version eq ZMQ_VERSION) {
-    $self->_send_error_reply(
-      $envelope, $req_id, 400 => 'Invalid version'
-    );
-    return
-  }
+    $version, $req_id, $domain, $address, $identity, $mechanism, @credentials
+  ) = @$zap_args;
 
   my $zrequest = POEx::ZMQ::ZAP::Internal::Request->new(
     envelope    => $envelope,
@@ -127,10 +115,9 @@ sub zmq_recv_multipart {
 }
 
 sub _verify_zap_args {
-  my ($self, $body) = @_;
+  my ($self, $envelope, $body) = @_;
 
   if ($body->count < 6) {
-    $self->logger->(info => "Not enough frames in ZAP request");
     if ( $body->exists(1) ) {
       $self->_send_error_reply(
         $envelope, $body->get(1), 400 => 'Not enough frames'
@@ -138,31 +125,58 @@ sub _verify_zap_args {
     } else {
       $self->logger->(info => "Cannot reply to malformed ZAP request")
     }
+    $self->logger->(info => "Not enough frames in ZAP request");
     return
   }
 
-  1
+  my (
+    $version,         # version frame (three bytes; '1.0' expected)
+    $req_id,          # binary blob [optional]
+    $domain,          # string
+    $address,
+    $identity,
+    $mechanism,       # string; NULL, PLAIN, CURVE
+    @credentials      # zero or more binary blobs
+  ) = $body->all;
+
+  unless ($version eq ZAP_VERSION) {
+    $self->_send_error_reply(
+      $envelope, $req_id, 400 => 'Invalid version'
+    );
+    $self->logger->(info => "Invalid version in ZAP request [$address]");
+    return
+  }
+
+  $address = '' unless defined $address and length $address;
+  $domain  = '' unless defined $domain  and length $domain;
+
+  [
+    $version, $req_id, $domain, $address, $identity, $mechanism, @credentials
+  ]
 }
 
 sub _dispatch_zap_auth {
   my ($self, $zrequest) = @_;
 
   my $result;
-  # FIXME check ->address against explicit whitelist / blacklist
   
+  my $mechanism = $zrequest->mechanism;
+
   AUTH: {
+    # FIXME check ->address against explicit whitelist / blacklist
+
     if ($mechanism eq 'NULL') {
-      $result = hash(
-        domain  => $zrequest->domain,
+      # FIXME no role, logging here:
+      $result = POEx::ZMQ::ZAP::Internal::Result->new(
         allowed => 1,
         reason  => '',
-      )->inflate;
+        domain  => $zrequest->domain,
+      )
       last AUTH
     }
 
     if ($mechanism eq 'PLAIN') {
       my ($user, $passwd) = $zrequest->credentials->all;
-      # FIXME check for missing user/passwd
       $result = $self->plain_authenticate(
         $zrequest->domain => $user => $passwd
       );
@@ -170,19 +184,46 @@ sub _dispatch_zap_auth {
     }
 
     if ($mechanism eq 'CURVE') {
-      # FIXME get pubkey from creds and ->curve_authenticate
+      my $pubkey = $zrequest->credentials->get(0);
+      $result = $self->curve_authenticate(
+        $zrequest->domain => $pubkey
+      );
       last AUTH
     }
 
-    # FIXME unknown mechanism
+    # FIXME logging:
+    $result = POEx::ZMQ::ZAP::Internal::Result->new(
+      allowed => 0,
+      reason  => 'Security mechanism not supported',
+      domain  => '',
+    );
   } # AUTH
 
-  # FIXME send appropriate 200/400
+  # FIXME logging:
   if ($result->allowed) {
-
+    $self->_send_success_reply(
+      $zrequest->envelope, $zrequest->request_id
+    );
   } else {
-
+    $self->_send_error_reply(
+      $zrequest->envelope, $zrequest->request_id, 400, $zrequest->reason
+    )
   }
+}
+
+sub _send_success_reply {
+  my ($self, $envelope, $req_id, $userid) = @_;
+
+  my @reply = $self->_assemble_reply_msg(
+    request_id  => $req_id,
+    status_code => 200,
+    status_text => 'OK',
+    user_id     => $userid,
+  );
+
+  $self->_zsock->send_multipart(
+    [ $envelope, '', @reply ]
+  );
 }
 
 sub _send_error_reply {
@@ -211,7 +252,7 @@ sub _assemble_reply_msg {
   $params{metadata} //= '';
 
   (
-    ZMQ_VERSION,
+    ZAP_VERSION,
     $params{request_id},
     $params{status_code},
     $params{status_text},
