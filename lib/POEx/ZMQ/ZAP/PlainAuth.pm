@@ -15,7 +15,7 @@ use Moo; use MooX::late;
 
 has _users => (
   #  $username => InflatedHash(
-  #    pass => $passwd,
+  #    pass => $pass,
   #    domains => array(@domains),
   #  )
   lazy      => 1,
@@ -29,6 +29,9 @@ sub setup_user {
   my ($self, $domain, $user, $passwd) = @_;
   confess "Expected a domain, username, and passwd"
     unless defined $domain and defined $user and defined $passwd;
+
+  confess "Attempting to setup_user for previously existing user $user"
+    if $self->_users->exists($user);
 
   my @domains
     = ref $domain && reftype $domain eq 'ARRAY' ? @$domain : $domain;
@@ -99,7 +102,7 @@ sub invalidate_domain_user {
   confess "No such user '$user' available" unless $uobj;
   my $domains = $uobj->domains->grep(sub { $_ ne $domain });
   $self->_users->set( $user =>
-    hash( pass => $uobj->passwd, domains => $domains )->inflate
+    hash( pass => $uobj->pass, domains => $domains )->inflate
   );
 
   $self
@@ -115,7 +118,7 @@ sub invalidate_domain {
     if ( $uobj->domains->has_any(sub { $_ eq $domain }) ) {
       $self->_users->set( $user =>
         hash(
-          pass    => $uobj->passwd,
+          pass    => $uobj->pass,
           domains => $uobj->domains->grep(sub { $_ ne $domain }),
         )->inflate
       );
