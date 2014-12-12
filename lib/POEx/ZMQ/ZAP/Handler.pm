@@ -13,7 +13,13 @@ use POEx::ZMQ::ZAP::Internal::Result;
 
 
 use Moo; use MooX::late;
-with 'MooX::Role::POE::Emitter';
+
+with
+  'MooX::Role::POE::Emitter',
+  'POEx::ZMQ::ZAP::Role::AddressHandler',
+  'POEx::ZMQ::ZAP::Role::PlainHandler',
+  'POEx::ZMQ::ZAP::Role::ZCertHandler',
+;
 
 use constant ZAP_VERSION => '1.0';
 
@@ -36,23 +42,6 @@ has _zsock => (
     )
   },
 );
-
-
-has logger => (
-  lazy      => 1,
-  is        => 'ro',
-  isa       => CodeRef,
-  builder   => sub {
-    sub { my $level = shift; warn "$level -> ", @_, "\n" } 
-  },
-);
-
-
-with
-  'POEx::ZMQ::ZAP::Role::AddressHandler',
-  'POEx::ZMQ::ZAP::Role::PlainHandler',
-  'POEx::ZMQ::ZAP::Role::ZCertHandler',
-;
 
 
 sub BUILD {
@@ -123,9 +112,9 @@ sub _verify_zap_args {
         $envelope, $body->get(1), 400 => 'Not enough frames'
       )
     } else {
-      $self->logger->(info => "Cannot reply to malformed ZAP request")
+      $self->emit( log => fail => "Cannot reply to malformed ZAP request" )
     }
-    $self->logger->(info => "Not enough frames in ZAP request");
+    $self->emit( log => fail => "Not enough frames in ZAP request" );
     return
   }
 
@@ -143,7 +132,7 @@ sub _verify_zap_args {
     $self->_send_error_reply(
       $envelope, $req_id, 400 => 'Invalid version'
     );
-    $self->logger->(info => "Invalid version in ZAP request [$address]");
+    $self->emit( log => fail => "Invalid version in ZAP request [$address]" );
     return
   }
 
@@ -166,12 +155,11 @@ sub _dispatch_zap_auth {
     # FIXME check ->address against explicit whitelist / blacklist
 
     if ($mechanism eq 'NULL') {
-      # FIXME no role, logging here:
       $result = POEx::ZMQ::ZAP::Internal::Result->new(
         allowed => 1,
         reason  => '',
         domain  => $zrequest->domain,
-      )
+      );
       last AUTH
     }
 
@@ -191,7 +179,6 @@ sub _dispatch_zap_auth {
       last AUTH
     }
 
-    # FIXME logging:
     $result = POEx::ZMQ::ZAP::Internal::Result->new(
       allowed => 0,
       reason  => 'Security mechanism not supported',
@@ -199,15 +186,23 @@ sub _dispatch_zap_auth {
     );
   } # AUTH
 
-  # FIXME logging:
   if ($result->allowed) {
     $self->_send_success_reply(
+      # FIXME user ids?
       $zrequest->envelope, $zrequest->request_id
+    );
+    $self->emit( log => auth =>
+      "Successful auth from @{[$zrequest->address]}"
+      . " (domain '@{[$zrequest->domain]}')"
     );
   } else {
     $self->_send_error_reply(
-      $zrequest->envelope, $zrequest->request_id, 400, $zrequest->reason
-    )
+      $zrequest->envelope, $zrequest->request_id, 400, $result->reason
+    );
+    $self->emit( log => fail =>
+      "Failed auth from @{[$zrequest->address]}"
+      . " (domain '@{[$zrequest->domain]}'"
+    );
   }
 }
 
@@ -268,4 +263,9 @@ sub _assemble_reply_msg {
 
 1;
 
-# vim: ts=2 sw=2 et sts=2 ft=perl
+=pod
+
+FIXME document emitted 'log' events
+
+=cut
+

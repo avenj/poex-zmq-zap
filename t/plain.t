@@ -2,18 +2,10 @@ use Test::More;
 use strict; use warnings FATAL => 'all';
 
 { package PlainHandler;
-  use Moo;
-  has logger => (
-    is => 'ro',
-    builder => sub {
-      sub {
-        my $level = shift;
-        # FIXME record logged msgs, test
-      }
-    }
-  );
-  with 'POEx::ZMQ::ZAP::Role::PlainHandler';
+  use Moo; with 'POEx::ZMQ::ZAP::Role::PlainHandler';
 }
+
+# FIXME tests for '-all'
 
 # setup_user
 my $handler = PlainHandler->new;
@@ -21,11 +13,17 @@ isa_ok $handler->plain, 'POEx::ZMQ::ZAP::PlainAuth';
 $handler->plain_setup_user( foo => userA => 'somepass' );
 $handler->plain->setup_user( foo => userB => 'otherpass' );
 
+eval {; $handler->plain->setup_user( foo => 'userC' ) };
+ok $@, 'bad args to setup_users dies';
+
 # check
 ok $handler->plain_check( foo => userA => 'somepass' ),
   'delegated plain_check ok';
 ok $handler->plain->check( foo => userB => 'otherpass' ),
   'plain->check ok';
+
+eval {; $handler->plain->check( foo => 'userA' ) };
+ok $@, 'bad args to check dies';
 
 ok !$handler->plain->check( bar => userA => 'somepass' ),
   'check fails for unknown domain ok';
@@ -50,6 +48,7 @@ ok $handler->plain_check( foo => userA => 'newpass' ),
   'check after set_passwd ok';
 ok !$handler->plain_check( foo => userA => 'somepass' ),
   'old passwd fails after set_passwd ok';
+
 eval {; $handler->plain->set_passwd( nosuch => 'somepass' ) };
 ok $@, 'attempting to set_passwd for nonexistant user dies';
 

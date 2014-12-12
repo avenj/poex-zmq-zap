@@ -31,6 +31,7 @@ has username => (
   lazy      => 1,
   is        => 'ro',
   isa       => Str,
+  predicate => 'has_username',
   builder   => sub { '' },
 );
 

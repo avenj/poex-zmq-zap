@@ -35,8 +35,6 @@ sub curve_authenticate {
 
   my ($reason, $allowed) = '';
 
-  # FIXME logging
-
   if (!defined $pubkey) {
     $reason = "Invalid credentials"
   } elsif ( !$self->curve_check($domain, $pubkey) ) {

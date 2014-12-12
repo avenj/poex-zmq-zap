@@ -31,8 +31,6 @@ sub plain_authenticate {
 
   my ($reason, $allowed) = '';
 
-  # FIXME logging
-
   if (!defined $username || !defined $pwd) {
     $reason = "Invalid credentials"
   } elsif ( !$self->plain_check($domain, $username, $pwd) ) {
@@ -40,7 +38,6 @@ sub plain_authenticate {
   } else {
     $allowed = 1
   }
-
 
   POEx::ZMQ::ZAP::Internal::Result->new(
     domain   => $domain,

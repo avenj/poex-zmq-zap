@@ -44,6 +44,9 @@ sub check {
   confess "Expected a domain, username, and passwd"
     unless defined $domain and defined $user and defined $passwd;
 
+  confess "->check for special domain '-all' disallowed"
+    if $domain eq '-all';
+
   my $uobj = $self->_users->get($user);
   return unless $uobj;  
   

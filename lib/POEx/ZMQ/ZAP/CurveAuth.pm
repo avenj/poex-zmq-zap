@@ -72,6 +72,10 @@ sub check {
   confess "Expected a domain and a public key (as Z85 text)"
     unless defined $domain and defined $pubkey;
 
+  # FIXME tests:
+  confess "->check for special domain '-all' disallowed"
+    if $domain eq '-all';
+
   my $listed = $self->_pubkeys->get($pubkey);
   return unless $listed;
   $listed->has_any(sub { $_ eq '-all' || $_ eq $domain })
