@@ -217,7 +217,8 @@ sub _dispatch_zap_auth {
     );
     $self->emit( log => fail =>
       "Failed auth from @{[$zrequest->address]}"
-      . " (domain '@{[$zrequest->domain]}'"
+      . " [domain '@{[$zrequest->domain]}']"
+      . " (@{[$result->reason]})"
     );
   }
 }
