@@ -12,7 +12,8 @@ use Moo; use MooX::late;
 has envelope => (
   required  => 1,
   is        => 'ro',
-  isa       => Defined,
+  isa       => ArrayObj,
+  coerce    => 1,
 );
 
 has request_id => (
