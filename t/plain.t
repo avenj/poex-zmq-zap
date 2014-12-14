@@ -32,6 +32,19 @@ ok !$handler->plain->check( foo => userC => 'somepass' ),
 ok !$handler->plain->check( foo => userA => 'badpass' ),
   'check fails for bad passwd ok';
 
+is_deeply
+  [ sort $handler->plain->userlist ],
+  [ 'userA', 'userB' ],
+  'userlist ok';
+
+is_deeply
+  [ $handler->plain->userlist( qr/B/ ) ],
+  [ 'userB' ],
+  'userlist(regex) ok';
+
+eval {; $handler->plain->userlist('foo') };
+like $@, qr/Regexp/, 'bad args to userlist dies';
+
 # add_domain_to_user
 $handler->plain->add_domain_to_user( bar => 'userA' );
 ok $handler->plain_check( bar => userA => 'somepass' ),

@@ -5,10 +5,12 @@ use Carp;
 
 use Scalar::Util 'reftype';
 
-use List::Objects::WithUtils;
+use List::Objects::WithUtils 2.021;
 
 use Types::Standard       -types;
 use List::Objects::Types  -types;
+
+# FIXME domains_for_user, userlist
 
 
 use Moo; use MooX::late;
@@ -40,6 +42,16 @@ sub setup_user {
   );
 
   $self
+}
+
+sub userlist {
+  my ($self, $regex) = @_;
+  if ($regex) {
+    confess "Expected a Regexp type object (qr//) but got $regex"
+      unless ref $regex eq 'Regexp';
+    return $self->_users->kv_grep(sub { $a =~ $regex })->keys->all
+  }
+  $self->_users->keys->all
 }
 
 sub check {
@@ -144,3 +156,105 @@ sub invalidate_all_users {
 }
 
 1;
+
+=pod
+
+=head1 NAME
+
+POEx::ZMQ::ZAP::PlainAuth - PLAIN user management for ZeroMQ ZAP
+
+=head1 SYNOPSIS
+
+FIXME
+
+=head1 DESCRIPTION
+
+This module handles adding, removing, and authenticating C<PLAIN>
+user/password pairs for use with L<POEx::ZMQ::ZAP> via
+L<POEx::ZMQ::ZAP::Role::PlainHandler>.
+
+=head2 METHODS
+
+=head1 setup_user
+
+  $plain->setup_user($domain => $username => $passwd);
+
+FIXME
+
+=head1 check
+
+  $plain->check($domain => $username => $passwd);
+
+FIXME
+
+Calls L</compare_passwd> to perform password comparison; by default, this is
+a simple check for string equality. See L</compare_passwd> regarding using
+hashed passwords.
+
+=head1 compare_passwd
+
+  $plain->compare_passwd($given => $expected);
+
+Called internally to compare passwords.
+
+C<compare_passwd> can be overriden or monkey-patched to modify the way
+passwords are compared; for example, when comparing against stored hashes:
+
+  use App::bmkpasswd 'passwdcmp';
+  use Class::Method::Modifiers 'install_modifier';
+  install_modifier 'POEx::ZMQ::ZAP::PlainAuth' => around => compare_passwd =>
+    sub {
+      my ($orig, $self, $given, $crypted) = @_;
+      # Works for bcrypt, SHA, MD5:
+      passwdcmp $given => $crypted
+    };
+
+=head1 userlist
+
+  # Get all known usernames:
+  my @all_users = $plain->userlist;
+  # Get all usernames containing 'foo':
+  my @matches = $plain->userlist( qr/foo/ );
+
+Given no arguments, returns a list of known usernames.
+
+Given a C<Regexp>-type object, returns a list of known usernames that match
+the given pattern.
+
+=head1 add_domain_to_user
+
+  $plain->add_domain_to_user($domain => $username);
+
+FIXME
+
+=head1 set_passwd
+
+  $plain->set_passwd($username => $passwd);
+
+Change an existing user's password.
+
+=head1 invalidate_domain_user
+
+  $plain->invalidate_domain_user($domain => $username);
+
+Invalidates a user for a specific domain only.
+
+=head1 invalidate_domain
+
+  $plain->invalidate_domain($domain);
+
+Invalidate a given domain.
+
+=head1 invalidate_user
+
+  $plain->invalidate_user($username);
+
+Invalidate a given username for all domains.
+
+=head1 invalidate_all_users
+
+  $plain->invalidate_all_users;
+
+Clear the user list entirely.
+
+=cut
