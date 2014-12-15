@@ -207,18 +207,20 @@ sub _dispatch_zap_auth {
       # FIXME user ids?
       $zrequest->envelope, $zrequest->request_id
     );
+    my $address = $zrequest->address;
+    my $domain  = $zrequest->domain;
     $self->emit( log => auth =>
-      "Successful auth from @{[$zrequest->address]}"
-      . " (domain '@{[$zrequest->domain]}')"
+      "Successful auth from $address (domain '$domain')"
     );
   } else {
+    my $reason  = $result->reason;
     $self->_send_error_reply(
-      $zrequest->envelope, $zrequest->request_id, 400, $result->reason
+      $zrequest->envelope, $zrequest->request_id, 400, $reason
     );
+    my $address = $zrequest->address;
+    my $domain  = $zrequest->domain;
     $self->emit( log => fail =>
-      "Failed auth from @{[$zrequest->address]}"
-      . " [domain '@{[$zrequest->domain]}']"
-      . " (@{[$result->reason]})"
+      "Failed auth from $address [domain '$domain'] ($reason)"
     );
   }
 }
@@ -230,7 +232,7 @@ sub _send_success_reply {
     request_id  => $req_id,
     status_code => 200,
     status_text => 'OK',
-    user_id     => $userid,
+    (defined $userid ? (user_id => $userid) : () ),
   );
 
   $self->_zsock->send_multipart(
