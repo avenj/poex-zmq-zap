@@ -5,7 +5,7 @@ use Carp;
 
 use Scalar::Util 'reftype';
 
-use List::Objects::WithUtils 2.021;
+use List::Objects::WithUtils;
 
 use Types::Standard       -types;
 use List::Objects::Types  -types;
@@ -49,7 +49,7 @@ sub userlist {
   if ($regex) {
     confess "Expected a Regexp type object (qr//) but got $regex"
       unless ref $regex eq 'Regexp';
-    return $self->_users->kv_grep(sub { $a =~ $regex })->keys->all
+    return $self->_users->keys->grep(sub { m/$regex/ })->all
   }
   $self->_users->keys->all
 }
@@ -225,7 +225,7 @@ the given pattern.
 
   $plain->add_domain_to_user($domain => $username);
 
-FIXME
+Add a new domain for an existing user.
 
 =head1 set_passwd
 
