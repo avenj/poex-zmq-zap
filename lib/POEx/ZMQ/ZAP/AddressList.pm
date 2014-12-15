@@ -68,11 +68,17 @@ FIXME
 
 =head1 DESCRIPTION
 
-FIXME
+A list of addresses, glob-like masks (see L</Masks>), or C<Regexp>-type
+objects for use by L<POEx::ZMQ::ZAP> via
+L<POEx::ZMQ::ZAP::Role::AddressHandler>.
 
 =head2 Masks
 
-FIXME
+Masks may be in the form of either C<Regexp>-type objects or glob-like masks
+following a simple pattern:
+
+  *  = Any number of any characters (possibly 0)
+  ?  = Any single character (at least one)
 
 =head2 ATTRIBUTES
 

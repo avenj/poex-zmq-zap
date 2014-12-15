@@ -10,7 +10,7 @@ requires "MooX::late"           => "0.014";
 requires "POE"                      => 1;
 requires "MooX::Role::POE::Emitter" => 0;
 
-requires "List::Objects::WithUtils" => "2";
+requires "List::Objects::WithUtils" => "2.021";
 requires "List::Objects::Types" => "1.003";
 
 requires "Types::Standard"      => "1";

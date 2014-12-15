@@ -56,3 +56,55 @@ sub addr_is_blacklisted {
 }
 
 1;
+
+=pod
+
+=head1 NAME
+
+POEx::ZMQ::ZAP::Role::AddressHandler - Add an AddressList to a ZAP handler
+
+=head1 SYNOPSIS
+
+FIXME
+
+=head1 DESCRIPTION
+
+FIXME link to AddressList and Masks details
+
+=head2 ATTRIBUTES
+
+=head3 address_auth_via
+
+Required; a string describing the type of address authentication in use,
+either C<blacklist> or C<whitelist>.
+
+Defaults to C<blacklist>.
+
+=head3 addresslist
+
+The actual L<POEx::ZMQ::ZAP::AddressList> instance; see the
+L<POEx::ZMQ::ZAP::AddressList> documentation for details.
+
+=head2 METHODS
+
+=head3 deny_mask
+
+FIXME link to Masks doc in AddressList
+
+=head3 allow_mask
+
+FIXME
+
+=head3 addr_is_whitelisted
+
+FIXME
+
+=head3 addr_is_blacklisted
+
+FIXME
+
+=head1 AUTHOR
+
+Jon Portnoy <avenj@cobaltirc.org>
+
+=cut

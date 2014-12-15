@@ -48,3 +48,7 @@ sub plain_authenticate {
 }
 
 1;
+
+=pod
+
+=cut
