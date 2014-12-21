@@ -290,7 +290,50 @@ sub _assemble_reply_msg {
 
 =pod
 
+=head1 NAME
+
+POEx::ZMQ::ZAP::Handler - ZeroMQ ZAP authentication handler
+
+=head1 SYNOPSIS
+
+FIXME
+
+=head1 DESCRIPTION
+
+FIXME
+
+=head2 CONSUMES
+
+This class consumes the following roles; see their respective documentation
+for further attributes and methods:
+
+L<POEx::ZMQ::ZAP::Role::AddressHandler> provides whitelist/blacklist support.
+
+L<POEx::ZMQ::ZAP::Role::PlainHandler> provides PLAIN user+password
+authentication support.
+
+L<POEx::ZMQ::ZAP::Role::ZCertHandler> provides CURVE key pair authentication
+and C<ZCert> support (via L<Crypt::ZCert>).
+
+This class is a L<POE> event emitter via L<MooX::Role::POE::Emitter>.
+
+=head2 ATTRIBUTES
+
+=head3 context
+
+=head2 METHODS
+
+=head3 stop
+
+Shut down the ZAP handler and event emitter.
+
+=head2 EMITTED EVENTS
+
 FIXME document emitted 'log' events
+
+=head1 AUTHOR
+
+Jon Portnoy <avenj@cobaltirc.org>
 
 =cut
 
