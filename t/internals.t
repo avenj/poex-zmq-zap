@@ -4,12 +4,12 @@ use strict; use warnings FATAL => 'all';
 use List::Objects::WithUtils;
 use List::Objects::Types -all;
 
-use POEx::ZMQ::ZAP::Internal::Request;
-use POEx::ZMQ::ZAP::Internal::Result;
+use POEx::ZMQ::ZAP::Request;
+use POEx::ZMQ::ZAP::Result;
 
 ## Request
 
-my $req = POEx::ZMQ::ZAP::Internal::Request->new(
+my $req = POEx::ZMQ::ZAP::Request->new(
   envelope    => ['foo'],
   request_id  => 123,
   domain      => 'bar',
@@ -27,7 +27,7 @@ ok $req->domain eq 'bar', 'domain ok';
 ok $req->address eq '1.2.3.4', 'address ok';
 ok $req->mechanism eq 'PLAIN', 'mechanism ok';
 
-$req = POEx::ZMQ::ZAP::Internal::Request->new(
+$req = POEx::ZMQ::ZAP::Request->new(
   envelope   => ['foo'],
   request_id => 123,
   address    => '1.2.3.4',
@@ -38,7 +38,7 @@ ok $req->identity eq '', 'default identity ok';
 ok $req->credentials->is_empty, 'default credentials ok';
 
 eval {
-  POEx::ZMQ::ZAP::Internal::Request->new(
+  POEx::ZMQ::ZAP::Request->new(
     envelope   => [],
     address    => '1.2.3.4',
     mechanism  => 'NULL',
@@ -47,7 +47,7 @@ eval {
 like $@, qr/request_id/, 'missing request_id dies';
 
 eval {
-  POEx::ZMQ::ZAP::Internal::Request->new(
+  POEx::ZMQ::ZAP::Request->new(
     request_id => 123,
     envelope   => [],
     address    => '1.2.3.4',
@@ -56,7 +56,7 @@ eval {
 like $@, qr/mechanism/, 'missing mechanism dies';
 
 eval {
-  POEx::ZMQ::ZAP::Internal::Request->new(
+  POEx::ZMQ::ZAP::Request->new(
     request_id => 123,
     envelope   => [],
     mechanism  => 'NULL',
@@ -65,7 +65,7 @@ eval {
 like $@, qr/address/, 'missing address dies';
 
 eval {
-  POEx::ZMQ::ZAP::Internal::Request->new(
+  POEx::ZMQ::ZAP::Request->new(
     request_id => 123,
     address    => '1.2.3.4',
     mechanism  => 'NULL',
@@ -75,7 +75,7 @@ like $@, qr/envelope/, 'missing envelope dies';
 
 
 ## Result
-my $result = POEx::ZMQ::ZAP::Internal::Result->new(
+my $result = POEx::ZMQ::ZAP::Result->new(
   allowed => 0,
   domain  => 'foo',
   reason  => 'because I said so',
@@ -88,14 +88,14 @@ ok $result->username eq 'bar', 'username ok';
 ok $result->has_username, 'has_username predicate ok';
 
 eval {
-  POEx::ZMQ::ZAP::Internal::Result->new(
+  POEx::ZMQ::ZAP::Result->new(
     domain => 'foo',
   )
 };
 like $@, qr/allowed/, 'missing allowed dies';
 
 eval {
-  POEx::ZMQ::ZAP::Internal::Result->new(
+  POEx::ZMQ::ZAP::Result->new(
     allowed => 1,
   )
 };

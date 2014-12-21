@@ -8,8 +8,8 @@ use POEx::ZMQ;
 use Types::Standard   -types;
 use POEx::ZMQ::Types  -types;
 
-use POEx::ZMQ::ZAP::Internal::Request;
-use POEx::ZMQ::ZAP::Internal::Result;
+use POEx::ZMQ::ZAP::Request;
+use POEx::ZMQ::ZAP::Result;
 
 
 use Moo; use MooX::late;
@@ -90,7 +90,7 @@ sub zmq_recv_multipart {
     $version, $req_id, $domain, $address, $identity, $mechanism, @credentials
   ) = @$zap_args;
 
-  my $zrequest = POEx::ZMQ::ZAP::Internal::Request->new(
+  my $zrequest = POEx::ZMQ::ZAP::Request->new(
     envelope    => $envelope,
     request_id  => $req_id,
     domain      => $domain,
@@ -99,6 +99,9 @@ sub zmq_recv_multipart {
     mechanism   => $mechanism,
     credentials => array(@credentials),
   );
+
+  # FIXME optional Object::RateLimiter-based rate limiting
+  #   on address or address+envelope ?
 
   $self->_dispatch_zap_auth($zrequest)
 }
@@ -152,7 +155,7 @@ sub _dispatch_zap_auth {
   AUTH: {
     if ($self->address_auth_via eq 'whitelist') {
       unless ( $self->addr_is_whitelisted($zrequest->address) ) {
-        $result = POEx::ZMQ::ZAP::Internal::Result->new(
+        $result = POEx::ZMQ::ZAP::Result->new(
           allowed => 0,
           reason  => 'Address not in whitelist',
           domain  => $zrequest->domain,
@@ -161,7 +164,7 @@ sub _dispatch_zap_auth {
       }
     } elsif ($self->address_auth_via eq 'blacklist') {
       if ( $self->addr_is_blacklisted($zrequest->address) ) {
-        $result = POEx::ZMQ::ZAP::Internal::Result->new(
+        $result = POEx::ZMQ::ZAP::Result->new(
           allowed => 0,
           reason  => 'Address is blacklisted',
           domain  => $zrequest->domain,
@@ -171,7 +174,7 @@ sub _dispatch_zap_auth {
     }
    
     if ($mechanism eq 'NULL') {
-      $result = POEx::ZMQ::ZAP::Internal::Result->new(
+      $result = POEx::ZMQ::ZAP::Result->new(
         allowed => 1,
         reason  => '',
         domain  => $zrequest->domain,
@@ -195,7 +198,7 @@ sub _dispatch_zap_auth {
       last AUTH
     }
 
-    $result = POEx::ZMQ::ZAP::Internal::Result->new(
+    $result = POEx::ZMQ::ZAP::Result->new(
       allowed => 0,
       reason  => 'Security mechanism not supported',
       domain  => '',
@@ -209,6 +212,8 @@ sub _dispatch_zap_auth {
     );
     my $address = $zrequest->address;
     my $domain  = $zrequest->domain;
+    # FIXME emit request/result pair, make sure these are documented,
+    #  maybe pull out of  ?
     $self->emit( log => auth =>
       "Successful auth from $address (domain '$domain')"
     );
@@ -219,6 +224,7 @@ sub _dispatch_zap_auth {
     );
     my $address = $zrequest->address;
     my $domain  = $zrequest->domain;
+    # FIXME emit request/result pair ?
     $self->emit( log => fail =>
       "Failed auth from $address [domain '$domain'] ($reason)"
     );

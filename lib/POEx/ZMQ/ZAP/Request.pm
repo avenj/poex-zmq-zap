@@ -1,4 +1,4 @@
-package POEx::ZMQ::ZAP::Internal::Request;
+package POEx::ZMQ::ZAP::Request;
 
 use strictures 1;
 

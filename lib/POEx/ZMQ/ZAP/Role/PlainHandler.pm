@@ -8,7 +8,7 @@ use List::Objects::WithUtils;
 use Types::Standard   -types;
 
 use POEx::ZMQ::ZAP::PlainAuth;
-use POEx::ZMQ::ZAP::Internal::Result;
+use POEx::ZMQ::ZAP::Result;
 
 
 use Moo::Role; use MooX::late;
@@ -39,7 +39,7 @@ sub plain_authenticate {
     $allowed = 1
   }
 
-  POEx::ZMQ::ZAP::Internal::Result->new(
+  POEx::ZMQ::ZAP::Result->new(
     domain   => $domain,
     username => $username,
     allowed  => $allowed,
