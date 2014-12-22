@@ -18,7 +18,7 @@ with
   'MooX::Role::POE::Emitter',
   'POEx::ZMQ::ZAP::Role::AddressHandler',
   'POEx::ZMQ::ZAP::Role::PlainHandler',
-  'POEx::ZMQ::ZAP::Role::ZCertHandler',
+  'POEx::ZMQ::ZAP::Role::CurveHandler',
 ;
 
 use constant ZAP_VERSION => '1.0';
