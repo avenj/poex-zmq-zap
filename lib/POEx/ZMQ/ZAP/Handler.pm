@@ -71,7 +71,8 @@ sub stop {
 sub _emitter_started {
   my ($kernel, $self) = @_[KERNEL, OBJECT];
 
-  $self->_zsock->bind('inproc://zeromq.zap.01');
+  $self->_zsock->call( bind => 'inproc://zeromq.zap.01' );
+  $self->emit( zap_running => 'inproc://zeromq.zap.01' );
 }
 
 sub _emitter_stopped {
@@ -212,8 +213,7 @@ sub _dispatch_zap_auth {
     );
     my $address = $zrequest->address;
     my $domain  = $zrequest->domain;
-    # FIXME emit request/result pair, make sure these are documented,
-    #  maybe pull out of  ?
+    $self->emit( success => $zrequest, $result );
     $self->emit( log => auth =>
       "Successful auth from $address (domain '$domain')"
     );
@@ -224,7 +224,7 @@ sub _dispatch_zap_auth {
     );
     my $address = $zrequest->address;
     my $domain  = $zrequest->domain;
-    # FIXME emit request/result pair ?
+    $self->emit( fail => $zrequest, $result );
     $self->emit( log => fail =>
       "Failed auth from $address [domain '$domain'] ($reason)"
     );
@@ -312,7 +312,7 @@ L<POEx::ZMQ::ZAP::Role::AddressHandler> provides whitelist/blacklist support.
 L<POEx::ZMQ::ZAP::Role::PlainHandler> provides PLAIN user+password
 authentication support.
 
-L<POEx::ZMQ::ZAP::Role::ZCertHandler> provides CURVE key pair authentication
+L<POEx::ZMQ::ZAP::Role::CurveHandler> provides CURVE key pair authentication
 and C<ZCert> support (via L<Crypt::ZCert>).
 
 This class is a L<POE> event emitter via L<MooX::Role::POE::Emitter>.
